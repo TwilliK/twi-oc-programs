@@ -18,6 +18,7 @@ reactor_enabled = reactor.getActive()
 control_rod_level = reactor.getControlRodsLevels()[0] -- this script adjusts all rods simultaniously
 
 last_cell_level = cell.getEnergy()
+cell_maximum = cell.getMaxEnergy()
 
 ---- Support Functions ----
 
@@ -49,12 +50,18 @@ function draw_box(pos_x, pos_y, width, height, title, color, background)
 		local workingstr = "╔" .. string.rep("═",bar_adjust) .. title .. string.rep("═",bar_adjust - 1) .. "╗"
 		gpu.set(pos_x, pos_y, workingstr)
 	end
-	--local workingstr = "╔" .. string.rep("═",(width - 2)) .. "╗"
-	--gpu.set(pos_x, pos_y, workingstr)
 	gpu.set(pos_x, pos_y + 1, string.rep("║",(height - 2)), true)
 	gpu.set(pos_x + width - 1, pos_y + 1, string.rep("║",(height - 2)), true)
 	workingstr = "╚" .. string.rep("═",(width - 2)) .. "╝"
 	gpu.set(pos_x, pos_y + height - 1, workingstr)
+end
+
+-- fill_pct should be given as a fraction from 0 to 1
+function draw_bar(pos_x, pos_y, width, height, fill_pct, color, background)
+	gpu.setForeground(color)
+	gpu.setBackground(background)
+	gpu.fill(pos_x, pos_y, width, height, "█")
+	gpu.fill(pos_x, pos_y, math.floor(width * fill_pct), height, "▒")
 end
 
 -------------------
@@ -66,7 +73,7 @@ while true do
 	if cell_level > (cell.getMaxEnergy() * cell_cap_pct) then
 		reactor.setActive(false)
 		reactor_enabled = false
-	elseif cell_level < (cell.getMaxEnergy() * cell_floor_pct) and reactor_enabled == false then
+	elseif cell_level < (cell_maximum * cell_floor_pct) and reactor_enabled == false then
 		reactor.setActive(true)
 		reactor_enabled = true
 	elseif cell_level < last_cell_level and reactor_enabled == true and control_rod_level > 0 then
@@ -76,6 +83,7 @@ while true do
 	last_cell_level = cell_level -- still not converting because we really only need to for display I guess?
 	
 	io.write("cell level " .. comma_value(tostring(cell_level * J_to_RF_factor)) .. " RF \n")
-	draw_box(1, 1, 20, 20, "abbcce", 0xffffff, 0x000000)
+	draw_box(1, 1, 22, 20, "abbcce", 0xffffff, 0x000000)
+	draw_bar(2, 2, 20, 2, (cell_maximum/cell_level), 0x990040, 0x99FFFF)
 	os.sleep(2)
 end
