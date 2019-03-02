@@ -64,9 +64,31 @@ function draw_bar(pos_x, pos_y, width, height, fill_pct, color, background)
 	gpu.fill(pos_x, pos_y, math.floor(width * fill_pct), height, "▒")
 end
 
+--------------------
+---- View Logic ----
+--------------------
+
+function display(cell_level)
+	local color_white = 0xffffff
+	local color_black = 0x000000
+	local color_purple = 0x9924C0
+	draw_box(1, 1, 40, 7, "REACTOR", color_white, color_black)
+	draw_box(1, 8, 40, 7, "CELL", color_white, color_black)
+	-- box reactor
+	gpu.set(2,2, "Rod% " .. control_rod_level .. " | " .. math.floor(reactor.getEnergyProducedLastTick()) .. " RF/t")
+	draw_bar(2, 3, 38, 2, (control_rod_level/100), color_black, color_purple)
+	gpu.setForeground(color_white)
+	gpu.setBackground(color_black)
+	gpu.set(2,5, "Fuel Usage " .. string.format("%.3f",reactor.getFuelConsumedLastTick()) .. " mB/t")
+	gpu.set(2,6, "XX:XX:XX remaining")
+	-- box cell
+	gpu.set(2,9, comma_value(tostring(cell_level * J_to_RF_factor)) .. " RF")
+	draw_bar(2,10, 38, 2, (cell_level / cell_maximum), color_black, color_purple)
+end
 -------------------
 ---- Main Loop  ---
 -------------------
+gpu.setResolution(14,40)
 
 while true do
 	local cell_level = cell.getEnergy() -- no convertion yet to save cycles?
@@ -82,8 +104,6 @@ while true do
 	end
 	last_cell_level = cell_level -- still not converting because we really only need to for display I guess?
 	
-	io.write("cell level " .. comma_value(tostring(cell_level * J_to_RF_factor)) .. " RF \n")
-	draw_box(1, 1, 22, 20, "abbcce", 0xffffff, 0x000000)
-	draw_bar(2, 2, 20, 2, (cell_maximum/cell_level), 0x990040, 0x99FFFF)
+	display(cell_level)
 	os.sleep(2)
 end
