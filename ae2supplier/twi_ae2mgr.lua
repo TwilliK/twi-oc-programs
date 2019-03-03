@@ -11,21 +11,21 @@ local ae2 = comp.me_controller
 --------	and crafting recipe via the AE2 api
 items = {
 	{filter={name="minecraft:stick"},
-		nicename="Stick", stock_value=64},
+		nicename="Stick", stock_value=0, crafter=nil, craftStatus=nil},
 	{filter={name="appliedenergistics2:material",damage=17},
-		nicename="Engineering Circuit", stock_value=64},
+		nicename="Engineering Circuit", stock_value=64, crafter=nil, craftStatus=nil},
 	{filter={name="appliedenergistics2:material",damage=24},
-		nicename="Engineering Processor", stock_value=128},
+		nicename="Engineering Processor", stock_value=0, crafter=nil, craftStatus=nil},
 	{filter={name="appliedenergistics2:material",damage=18},
-		nicename="Logic Circuit", stock_value=64},
+		nicename="Logic Circuit", stock_value=0, crafter=nil, craftStatus=nil},
 	{filter={name="appliedenergistics2:material",damage=22},
-		nicename="Logic Processor", stock_value=128},
+		nicename="Logic Processor", stock_value=0, crafter=nil, craftStatus=nil},
 	{filter={name="appliedenergistics2:material",damage=10},
-		nicename="Pure Certus Quartz", stock_value=64},
+		nicename="Pure Certus Quartz", stock_value=0, crafter=nil, craftStatus=nil},
 	{filter={name="appliedenergistics2:material",damage=16},
-		nicename="Calc Circuit", stock_value=64},
+		nicename="Calc Circuit", stock_value=0, crafter=nil, craftStatus=nil},
 	{filter={name="appliedenergistics2:material",damage=23},
-		nicename="Calc Processor", stock_value=128},
+		nicename="Calc Processor", stock_value=0, crafter=nil, craftStatus=nil},
 }
 
 -- how long to wait between the end of one check cycle and the beginning of the next
@@ -57,6 +57,11 @@ function itemDraw(index, item, stock, crafting)
 		col_index = col_index + 41
 	end
 	local output = item.nicename .. " x" .. stock
+	if crafting == true then
+		output = "[c]" .. output
+	else
+		output = "[x]" .. output
+	end
 	if string.len(output) > 40 then
 		output = output .. string.rep(" ", 40-string.len(output))
 	end
@@ -72,9 +77,35 @@ while true do
 	for key, item in pairs(items) do
 		local i_info = ae2.getItemsInNetwork(item.filter)[1]
 		if i_info.size == nil then
-			itemDraw(key, item, 0, false)
+			if item.stock_value ~= 0 and item.craftStatus == nil then
+				if item.crafter == nil then
+					item.crafter = ae2.getCraftables(item.filter)[1]
+				end
+				item.craftStatus = item.crafter.request(item.stock_value)
+			end
+			if item.craftStatus.isDone() then
+				item.craftStatus = nil
+			end
+			if item.craftStatus == nil then
+				itemDraw(key, item, 0, false)
+			else
+				itemDraw(key, item, 0, true)
+			end
 		else
-			itemDraw(key, item, i_info.size, false)
+			if item.stock_value ~= 0 and item.craftStatus == nil then
+				if item.crafter == nil then
+					item.crafter = ae2.getCraftables(item.filter)[1]
+				end
+				item.craftStatus = item.crafter.request(item.stock_value - i_info.size)
+			end
+			if item.craftStatus.isDone() then
+				item.craftStatus = nil
+			end
+			if item.craftStatus == nil then
+				itemDraw(key, item, i_info.size, false)
+			else
+				itemDraw(key, item, i_info.size, true)
+			end
 		end
 	end
 	os.sleep(cycle_wait)
